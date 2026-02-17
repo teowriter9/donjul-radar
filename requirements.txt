@@ -1,0 +1,7 @@
+streamlit
+yfinance
+pandas_datareader
+plotly
+pandas
+reportlab
+smtplib

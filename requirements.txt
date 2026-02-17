@@ -4,3 +4,5 @@ pandas_datareader
 plotly
 pandas
 reportlab
+setuptools
+packaging

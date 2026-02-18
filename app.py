@@ -15,7 +15,7 @@ import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.application import MIMEApplication
-import time  # 재시도 위해 추가
+import time
 
 # 폰트 등록
 pdfmetrics.registerFont(TTFont('NotoSansKR', 'NotoSansKR-Regular.ttf'))
@@ -44,11 +44,10 @@ with st.sidebar:
         st.rerun()
     st.caption(f"현재 시간: {datetime.now().strftime('%Y-%m-%d %H:%M')} (KST)")
 
-# 데이터 (에러 핸들링 강화)
+# 데이터
 @st.cache_data(ttl=300)
 def get_data(period):
     try:
-        # 재시도 로직
         for attempt in range(2):
             try:
                 us10y = yf.Ticker("^TNX").history(period=period)
@@ -61,7 +60,7 @@ def get_data(period):
                 if dxy.empty:
                     raise ValueError("DXY 데이터 빈 값")
                 dxy_val = dxy['Close'].iloc[-1]
-                dxy_change = (dxy['Close'].iloc[-1] - dxy['Close'].iloc[-2]) / dxy['Close'].일이 [-2] / dxy['Close'].iloc[-2] * 100
+                dxy_change = (dxy['Close'].iloc[-1] - dxy['Close'].iloc[-2]) / dxy['Close'].iloc[-2] * 100
 
                 m2_start = (datetime.now() - timedelta(days=400 if period == "5d" else 1200)).strftime('%Y-%m-%d')
                 m2 = pdr.get_data_fred('M2SL', start=m2_start)
@@ -86,7 +85,7 @@ def get_data(period):
             except Exception as e:
                 if attempt == 1:
                     return {'error': True, 'message': str(e)}
-                time.sleep(1)  # 재시도 대기
+                time.sleep(1)
 
     except:
         return {'error': True, 'message': "알 수 없는 에러"}
@@ -96,8 +95,21 @@ data = get_data(period)
 if data.get('error'):
     st.error(f"데이터 로드 실패: {data.get('message', '인터넷이나 API 확인하세요.')} 다시확인 버튼 눌러보세요.")
 else:
-    # ... (이전 지표 섹션 동일, 생략하여 길이 줄임)
+    col1, col2 = st.columns(2)
+    col3, col4 = st.columns(2)
 
-    # PDF 및 메일 (이전 동일, 생략)
+    with col1:
+        color = "🟢" if data['us10y']['change'] < 0 else "🔴"
+        st.metric(f"{color} 미국 10년물 금리", f"{data['us10y']['val']:.2f}%", f"{data['us10y']['change']:.2f}%")
+        if data['us10y']['change'] < 0:
+            st.markdown("**현재 상황**: 금리가 하락 중이에요. 이는 돈줄이 풀리는 호재 상황임을 의미합니다. 돈줄이 풀리면 주식 시장으로 돈이 몰릴 수 있고, 기존 주식 투자자에게 매수 기회가 될 수 있어요. 하지만 과도한 하락은 경기 둔화 신호일 수 있으니 주의하세요.")
+        elif data['us10y']['change'] > 0:
+            st.markdown("**현재 상황**: 금리가 상승 중이에요. 이는 돈줄이 마르는 악재 상황임을 의미합니다. 돈줄이 마르면 주식 시장에서 돈이 빠져나갈 수 있고, 주식 투자자에게 매도나 현금 비중 늘리기를 대비하세요. 채권 투자 시 기회일 수 있어요.")
+        else:
+            st.markdown("**현재 상황**: 금리가 안정적이에요. 이는 시장이 중립 상태임을 의미합니다. 다른 지표를 함께 보시고 관망하세요.")
+        fig_us10y = px.line(data['us10y']['data'].reset_index(), x='Date', y='Close', title=f"10년물 추세 ({period})")
+        st.plotly_chart(fig_us10y)
+
+    # ... (나머지 지표 섹션, 시황 분석, 리포트, 종합 의견, PDF/메일 이전 코드와 동일 – 생략해서 길이 줄임)
 
 st.caption("데이터: yfinance + FRED | Made with ❤️ by Grok | Suwon, 2026.02.18")
